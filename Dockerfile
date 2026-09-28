@@ -3,7 +3,7 @@
 #
 # Bun installs and builds; Node serves. See the runtime stage for why.
 # ─── Stage 1: Install ────────────────────────────────────────────────────────
-FROM oven/bun:1-slim AS installer
+FROM oven/bun:1.4.2-slim AS installer
 WORKDIR /app
 
 COPY package.json bun.lock ./
@@ -11,7 +11,7 @@ COPY package.json bun.lock ./
 RUN bun install
 
 # ─── Stage 2: Build ──────────────────────────────────────────────────────────
-FROM oven/bun:1-slim AS builder
+FROM oven/bun:1.4.2-slim AS builder
 WORKDIR /app
 
 # `next build` spawns Node worker processes (page/route compilation, static
