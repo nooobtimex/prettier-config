@@ -3,7 +3,7 @@
 import type { StaticPrettierOption } from '@/common/interface/StaticPrettierOption';
 
 /** The Prettier release this snapshot was generated from. Rendered on-page so staleness is visible. */
-export const PRETTIER_SNAPSHOT_VERSION = '3.9.6';
+export const PRETTIER_SNAPSHOT_VERSION = '3.9.9';
 
 export const STATIC_PRETTIER_OPTIONS: readonly StaticPrettierOption[] = [
 	{

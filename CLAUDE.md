@@ -17,7 +17,9 @@ the app supports every release without bundling Prettier itself.
 ## Stack
 
 - **Next.js 16** (App Router, `output: 'standalone'`, `typedRoutes: true`)
-- **React 19** + **TypeScript** (strict)
+- **React 19** + **TypeScript 7** (strict) — the native `tsc`, with the TS 6 API
+  installed alongside for typescript-eslint (see Gotchas)
+- **ESLint 10** (flat config) via `eslint-config-next`
 - **Tailwind CSS v4** (`@tailwindcss/postcss`, CSS-first config in `app/globals.css`)
 - **shadcn/ui** (style `base-nova`, base color neutral) on **@base-ui/react**, Lucide icons
 - **CodeMirror 6** — the "Your Code" editor (lazy language packs)
@@ -29,9 +31,10 @@ the app supports every release without bundling Prettier itself.
 ```bash
 bun install
 bun dev        # next dev on port 2000  → http://localhost:2000
-bun run build  # next build
+bun run build  # gen:* → typecheck → next build
 bun start      # next start on port 2000
 bun run lint   # eslint --fix && prettier --write .
+bun run typecheck  # next typegen && tsc --noEmit (TypeScript 7)
 
 bun run gen:options   # regenerate lib/generated/prettierOptions.ts
 bun run gen:articles  # regenerate lib/generated/articleRegistry.ts (scans content/)
@@ -248,6 +251,24 @@ Railway's GitHub integration. Do not add config for any other platform.
   plain data, and no `prettier` import survives into either bundle. Assert it —
   after a build `.next/standalone/node_modules/prettier` must not exist and no
   client chunk may contain `STATIC_PRETTIER_OPTIONS`.
+- **TypeScript 7 runs side-by-side with TypeScript 6 — don't "fix" the alias.**
+  TS 7 has no JS compiler API, and typescript-eslint (behind
+  `eslint-config-next/typescript`) `require('typescript')`s one, capping it at
+  `<6.1.0`. So, per Microsoft's own recipe, `typescript` is
+  `npm:@typescript/typescript6` (bin `tsc6`) and TS 7 lives under
+  `@typescript/native` (bin `tsc`). Next would resolve `typescript` → `tsc6` and
+  type-check with TS 6, so `next.config.ts` sets `typescript.ignoreBuildErrors`
+  and `build` runs `typecheck` (TS 7) first instead — a type error still fails
+  the build. `typecheck` starts with `next typegen` because `next-env.d.ts` and
+  `.next/types/` are gitignored and absent in a fresh Docker builder. Once
+  typescript-eslint supports TS 7 (expected with the TS 7.1 API), collapse to a
+  plain `typescript@7` and drop `ignoreBuildErrors`.
+- **ESLint 10 needs the pinned `settings.react.version`** in `eslint.config.mjs`.
+  eslint-config-next sets `'detect'`, and eslint-plugin-react 7.37 detects via
+  `context.getFilename()`, which ESLint 10 removed — every file crashes with
+  "contextOrFilename.getFilename is not a function". The config reads the
+  installed React version instead. Expect peer-dependency warnings from
+  eslint-plugin-react/import/jsx-a11y (they declare `^9`) until they catch up.
 - Adding a **parser**: update `ParserId` + `PARSERS` + `detectParser` in
   `lib/parsers.ts` **and** `PARSER_PLUGINS` in `lib/prettierLoader.ts`, then add a
   Preview sample and the `parserPicker` i18n labels.

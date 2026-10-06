@@ -66,6 +66,13 @@ const nextConfig: NextConfig = {
 	typedRoutes: true,
 	output: 'standalone',
 
+	// A hand-off, not a skip. `bun run build` runs `typecheck` (TypeScript 7's native
+	// `tsc`) first and stops on any error, so Railway never deploys a type error.
+	// Left on, Next would check the whole project a second time with TypeScript 6:
+	// `typescript` resolves to the @typescript/typescript6 alias, which
+	// typescript-eslint still needs, and Next falls back to its `tsc6` binary.
+	typescript: { ignoreBuildErrors: true },
+
 	// Every route here is prerendered at build time (63 pages + robots + sitemap,
 	// zero dynamic routes), so Next's default 50 MB in-memory response LRU only
 	// holds second copies of files already on disk. Measured in the container,
