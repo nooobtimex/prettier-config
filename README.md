@@ -115,12 +115,12 @@ TypeScript, JavaScript, Flow, CSS, SCSS, Less, HTML, Vue, Angular templates, JSO
 single service that deploys from `main` — Railway's GitHub integration handles
 deploys automatically.
 
-| File             | Role                                                                               |
-| :--------------- | :--------------------------------------------------------------------------------- |
-| `railway.toml`   | Tells Railway to use the Dockerfile builder, plus start command and restart policy |
-| `Dockerfile`     | Three-stage build — Bun installs, Bun builds, **Node serves**                      |
-| `.dockerignore`  | Keeps `node_modules`, `.next`, and `.env` out of the build context                 |
-| `.tool-versions` | Pins the local toolchain (`bun 1.3.14`, `node 26`) to match the image              |
+| File                  | Role                                                                     |
+| :-------------------- | :----------------------------------------------------------------------- |
+| `.railway/railway.ts` | Railway service config (IaC): Dockerfile builder, start command, domains |
+| `Dockerfile`          | Three-stage build — Bun installs, Bun builds, **Node serves**            |
+| `.dockerignore`       | Keeps `node_modules`, `.next`, and `.env` out of the build context       |
+| `.tool-versions`      | Pins the local toolchain (`bun 1.3.14`, `node 26`) to match the image    |
 
 **Runtimes.** The image **builds with Bun** but **serves under Node**
 (`node:26-slim` runner stage, `CMD node server.js`) — Bun's Node-compat HTTP layer
@@ -137,7 +137,8 @@ only needs `libatomic1` added. If either tag moves to a new Debian release, move
 them together.
 
 **Railway dashboard settings.** Leave the service **Root Directory** at `/` (repo
-root). Nothing else needs configuring — `railway.toml` carries the rest.
+root). Everything else lives in `.railway/railway.ts`; preview a change with
+`railway config plan` and make it live with `railway config apply`.
 
 > [!NOTE]
 > **No environment variables are required.** Prettier and every parser plugin are

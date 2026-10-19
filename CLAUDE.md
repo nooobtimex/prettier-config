@@ -181,7 +181,7 @@ i18n/                 next-intl request.ts + navigation.ts
 next-intl.config.ts   routing: locales list + defaultLocale
 proxy.ts              next-intl middleware (matcher excludes api/_next/static)
 Dockerfile            Bun builds → Node serves (Railway image)
-railway.toml          Railway build/deploy config
+.railway/railway.ts   Railway service config (IaC, partial prettier-config)
 ```
 
 ## Deployment (Railway)
@@ -189,9 +189,11 @@ railway.toml          Railway build/deploy config
 **Railway is the only deployment target.** One service, deploying from `main` via
 Railway's GitHub integration. Do not add config for any other platform.
 
-- **[railway.toml](railway.toml)** — `builder = "DOCKERFILE"`,
-  `startCommand = "node server.js"`, `restartPolicyType = "ON_FAILURE"`. Service
-  **Root Directory** stays `/` in the dashboard; everything else lives in this file.
+- **[.railway/railway.ts](.railway/railway.ts)** — Infrastructure as Code (partial
+  `prettier-config`): Dockerfile builder, `start: "node server.js"`, domains;
+  restart is Railway's default (`ON_FAILURE`, 10 retries). Railway does not read it on deploy: preview with
+  `railway config plan`, change the service with `railway config apply`. Service
+  **Root Directory** stays `/`.
 - **[Dockerfile](Dockerfile)** — three stages: Bun installs → Bun builds → **Node
   serves**. The runner is `node:26-slim`, not Bun: the Next standalone server leaks
   RSS under Bun's Node-compat HTTP layer (oven-sh/bun#27514). Keep the split unless
