@@ -38,6 +38,8 @@ const eslintConfig = defineConfig([
 	},
 	// Override default ignores of eslint-config-next.
 	globalIgnores([
+		// repo-kit core — stamped, edited only in the repo-kit repo
+		'.claude/skills/update-docs/**',
 		// Default ignores of eslint-config-next:
 		'.next/**',
 		'out/**',
