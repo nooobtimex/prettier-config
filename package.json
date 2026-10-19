@@ -10,7 +10,9 @@
 		"typecheck": "next typegen && tsc --noEmit",
 		"build": "bun run gen:options && bun run gen:articles && bun run typecheck && next build",
 		"start": "next start -p 2000",
-		"lint": "eslint --fix && prettier --write ."
+		"lint": "eslint --fix && prettier --write .",
+		"check:agents": "bun .claude/skills/update-docs/scripts/check-agent-docs.ts",
+		"gate": "bun run lint && bun run build && bun run check:agents"
 	},
 	"dependencies": {
 		"@base-ui/react": "^1.8.0",
