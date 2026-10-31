@@ -39,7 +39,9 @@ const eslintConfig = defineConfig([
 	// Override default ignores of eslint-config-next.
 	globalIgnores([
 		// repo-kit core — stamped, edited only in the repo-kit repo
-		'.claude/skills/update-docs/**',
+		'.agents/skills/update-docs/**',
+		// Claude Code session worktrees hold whole copies of the repo
+		'.claude/worktrees/**',
 		// Default ignores of eslint-config-next:
 		'.next/**',
 		'out/**',
