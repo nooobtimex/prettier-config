@@ -3,7 +3,7 @@
  *
  * The publisher ID is public information — it ships in the page source and in
  * every ad request — so it lives here rather than behind an env var. That keeps
- * the "no env vars are required" deploy story in CLAUDE.md intact.
+ * the "no env vars are required" deploy story in AGENTS.md intact.
  *
  * Three places must agree, in three different spellings:
  *   - `CLIENT_ID` (`ca-pub-…`) → `<meta name="google-adsense-account">` in
