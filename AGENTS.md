@@ -15,7 +15,9 @@
   code, delete the old rule, _then_ add the reverse one — the reverse rule first is an infinite loop.
 - **`public/ads.txt` is authoritative** — `prettier-config.dev` is a root domain, so crawlers read this file.
 - **Never bundle Prettier for runtime formatting** — user code is formatted by the CDN-loaded copy through
-  `loadPrettier()`. `prettier` is a regular dependency only so build-time codegen can resolve it; after a
+  `loadPrettier()`. `prettier` and `prettier-plugin-tailwindcss` are regular dependencies only so build-time
+  codegen can resolve them (`gen:options` and `gen:articles` format their output with the `.prettierrc` plugin;
+  without it they fail with `ERR_MODULE_NOT_FOUND`) — `bun fmt` does not need either; after a
   build `.next/standalone/node_modules/prettier` must not exist and no client chunk may contain
   `STATIC_PRETTIER_OPTIONS`.
 - **No env vars are required.** Railway injects `PORT` and `server.js` reads it — never pin `PORT` in the
@@ -24,18 +26,22 @@
 ## Delivery contract
 
 - Base branch: `main`.
-- Gate: `bun run gate` = `lint` (eslint --fix && prettier --write .) → `build` (`gen:options` →
+- Gate: `bun run gate` = `lint` (`eslint --fix && bun fmt`) → `build` (`gen:options` →
   `gen:articles` → `typecheck` → `next build`) → `check:agents`. There is **no test suite** and no CI —
   verify behaviour in `bun dev` (port 2000).
-- **Formatting** ([`.prettierrc`](.prettierrc)): tabs, width 2, printWidth 100, single quotes, semicolons,
-  `trailingComma: all`, `singleAttributePerLine: true`, `prettier-plugin-tailwindcss`.
+- **Formatting** ([`.prettierrc`](.prettierrc), read by `bun fmt`): tabs, width 2, printWidth 100, single quotes,
+  semicolons, `trailingComma: all`, `singleAttributePerLine: true`, Tailwind class sorting (built into `bun fmt`).
 - **ESLint** ([`eslint.config.mjs`](eslint.config.mjs)): `no-explicit-any` and unused vars are errors
-  (prefix `_` to ignore), `no-console` warns (`warn`/`error` allowed), `prettier/prettier` is an error.
+  (prefix `_` to ignore), `no-console` warns (`warn`/`error` allowed). ESLint does not run Prettier (`eslint-config-prettier` only switches
+  off its style rules); formatting is `bun fmt`.
 - **TypeScript 7 runs side by side with TypeScript 6 — don't "fix" the alias.** typescript-eslint needs a
   JS compiler API that TS 7 lacks, so `typescript` is `npm:@typescript/typescript6` (bin `tsc6`) and TS 7 is
   `@typescript/native` (bin `tsc`). `next.config.ts` sets `typescript.ignoreBuildErrors` and `build` runs
-  `typecheck` (TS 7, after `next typegen`) first, so a type error still fails the build. Collapse to plain
+  `typecheck` (`next typegen && bun check`, Bun's own checker) first, so a type error still fails the build. Collapse to plain
   `typescript@7` once typescript-eslint supports it.
+- **Bun 1.4.4 is pinned** in `packageManager`, `.tool-versions` and both Dockerfile stages (`oven/bun:1.4.4-slim`) —
+  move them together. `bunfig.toml` holds `minimumReleaseAge = "3d"`, so an install refuses a package version
+  published less than 3 days ago.
 - **Deploy:** Railway only, one service from `main`. [`.railway/railway.ts`](.railway/railway.ts) is the IaC
   (Railway does not read it on deploy: `railway config plan`, then `railway config apply`). The
   [`Dockerfile`](Dockerfile) is Bun installs → Bun builds → **Node serves** (`node:26-slim`; Bun's HTTP layer
