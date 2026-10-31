@@ -26,7 +26,7 @@ wired: [`references/architecture.md`](references/architecture.md).
   to format user code. All formatting goes through `loadPrettier()` in
   [lib/prettierLoader.ts](../../../lib/prettierLoader.ts).
 - **No tests.** Verify with `bun dev` (port 2000) and the real UI.
-- **Format before finishing:** `bun run lint` (eslint --fix && prettier --write .). Tabs, single quotes,
+- **Format before finishing:** `bun run lint` (`eslint --fix && bun fmt`). Tabs, single quotes,
   printWidth 100, `no-explicit-any` is an error.
 - **i18n is mandatory** for user-facing strings: add keys to every `common/messages/*.json` (20 locales),
   with `en.json` as the source of truth.

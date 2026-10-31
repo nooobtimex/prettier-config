@@ -120,7 +120,7 @@ deploys automatically.
 | `.railway/railway.ts` | Railway service config (IaC): Dockerfile builder, start command, domains |
 | `Dockerfile`          | Three-stage build — Bun installs, Bun builds, **Node serves**            |
 | `.dockerignore`       | Keeps `node_modules`, `.next`, and `.env` out of the build context       |
-| `.tool-versions`      | Pins the local toolchain (`bun 1.3.14`, `node 26`) to match the image    |
+| `.tool-versions`      | Pins the local toolchain (`bun 1.4.4`, `node 26`) to match the image     |
 
 **Runtimes.** The image **builds with Bun** but **serves under Node**
 (`node:26-slim` runner stage, `CMD node server.js`) — Bun's Node-compat HTTP layer

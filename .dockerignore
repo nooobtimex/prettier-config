@@ -9,3 +9,11 @@
 **/.claude
 **/.github
 **/*.md
+
+# Agent instructions never enter an image
+.agents
+.claude
+AGENTS.md
+CLAUDE.md
+**/AGENTS.md
+**/CLAUDE.md

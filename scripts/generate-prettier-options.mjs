@@ -1,7 +1,7 @@
 /**
  * Emits lib/generated/prettierOptions.ts from the pinned `prettier` package.
  *
- * Why this is allowed despite "never bundle Prettier" (CLAUDE.md):
+ * Why this is allowed despite "never bundle Prettier" (AGENTS.md):
  *  - it runs at BUILD time in Node, never in the browser or the server runtime;
  *  - it calls getSupportInfo() — metadata extraction, not formatting;
  *  - its output is plain data, so no `prettier` import survives into either
@@ -9,7 +9,7 @@
  *    must still not exist.
  *
  * The one formatting call below runs Prettier over this repo's own generated
- * source so it satisfies .prettierrc — which CLAUDE.md explicitly permits.
+ * source so it satisfies .prettierrc — which AGENTS.md explicitly permits.
  *
  * Chained into `build`, so every deploy regenerates from whatever version
  * package.json pins. Bumping `prettier` is the entire maintenance action; no

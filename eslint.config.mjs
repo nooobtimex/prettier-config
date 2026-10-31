@@ -3,7 +3,6 @@ import { defineConfig, globalIgnores } from 'eslint/config';
 import nextVitals from 'eslint-config-next/core-web-vitals';
 import nextTs from 'eslint-config-next/typescript';
 import prettier from 'eslint-config-prettier';
-import prettierPlugin from 'eslint-plugin-prettier';
 
 // eslint-config-next sets `react.version: 'detect'`, and eslint-plugin-react 7.37
 // detects by calling `context.getFilename()` — removed in ESLint 10, so every file
@@ -20,11 +19,7 @@ const eslintConfig = defineConfig([
 		settings: {
 			react: { version: reactVersion },
 		},
-		plugins: {
-			prettier: prettierPlugin,
-		},
 		rules: {
-			'prettier/prettier': 'error',
 			'@typescript-eslint/no-explicit-any': 'error',
 			'@typescript-eslint/no-unused-vars': [
 				'error',
@@ -39,7 +34,9 @@ const eslintConfig = defineConfig([
 	// Override default ignores of eslint-config-next.
 	globalIgnores([
 		// repo-kit core — stamped, edited only in the repo-kit repo
-		'.claude/skills/update-docs/**',
+		'.agents/skills/update-docs/**',
+		// Claude Code session worktrees hold whole copies of the repo
+		'.claude/worktrees/**',
 		// Default ignores of eslint-config-next:
 		'.next/**',
 		'out/**',
