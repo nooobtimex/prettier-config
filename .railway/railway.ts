@@ -17,8 +17,8 @@ export default defineRailway(() => {
 		start: 'node server.js',
 		replicas: { 'asia-southeast1-eqsg3a': 1 },
 		domains: [
-			{ domain: 'prettier-config.dev', port: 2000 },
-			{ domain: 'prettier-config.nooobtimex.me', port: 2000 },
+			{ domain: 'prettier-config.dev', port: 12000 },
+			{ domain: 'prettier-config.nooobtimex.me', port: 12000 },
 		],
 	});
 

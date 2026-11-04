@@ -21,14 +21,14 @@
   build `.next/standalone/node_modules/prettier` must not exist and no client chunk may contain
   `STATIC_PRETTIER_OPTIONS`.
 - **No env vars are required.** Railway injects `PORT` and `server.js` reads it — never pin `PORT` in the
-  image. `.env` sets `PORT=2000` for local dev only; `.dockerignore` keeps it out of the image.
+  image. `.env` sets `PORT=12000` for local dev only; `.dockerignore` keeps it out of the image.
 
 ## Delivery contract
 
 - Base branch: `main`.
 - Gate: `bun run gate` = `lint` (`eslint --fix && bun fmt`) → `build` (`gen:options` →
   `gen:articles` → `typecheck` → `next build`) → `check:agents`. There is **no test suite** and no CI —
-  verify behaviour in `bun dev` (port 2000).
+  verify behaviour in `bun dev` (port 12000).
 - **Formatting** ([`.prettierrc`](.prettierrc), read by `bun fmt`): tabs, width 2, printWidth 100, single quotes,
   semicolons, `trailingComma: all`, `singleAttributePerLine: true`, Tailwind class sorting (built into `bun fmt`).
 - **ESLint** ([`eslint.config.mjs`](eslint.config.mjs)): `no-explicit-any` and unused vars are errors
@@ -48,7 +48,9 @@
   leaks RSS, oven-sh/bun#27514). The build stage copies the `node` binary from `node:26-slim` — bump the two
   Debian releases together. `output: 'standalone'` does not copy `.next/static` or `public/`, so the runner
   copies both by hand. Exercise the image:
-  `docker build -t prettier-config . && docker run --rm -e PORT=2000 -p 2000:2000 prettier-config`.
+  `docker build -t prettier-config . && docker run --rm -e PORT=12000 -p 12000:12000 prettier-config`.
+- **Ports:** this repo is `RR = 12`, so the web app is on `12000` (`bun dev` and `bun start` default to it, and
+  Railway's domain target port is `12000`). A worktree `n` runs `PORT=1200n bun run dev`.
 
 <!-- repo-kit:delivery -->
 
@@ -68,8 +70,12 @@ never here. The repo-specific half is the rest of this section.
 - **Production data, migrations, secrets, domains, CORS, auth:** state the blast radius and get Kwan's yes
   first.
 - **Never read, print or copy `.env*`, keys, tokens or credentials.**
+- **Ports are five digits and unique across every repo:** `RRSWW` is the repo (`RR`, handed out by the repo-kit
+  repo), the service (`S`, with `8` kept for test runs) and the worktree (`WW`, `00` for the main checkout). A
+  deployed service uses the same number for its `PORT` and its domain's target port. This repo's numbers are in
+  its `AGENTS.md`.
 
-<!-- repo-kit: version=2026.10.31 hash=9a19d2c92a7e -->
+<!-- repo-kit: version=2026.11.04 hash=2d69171cd02e -->
 
 ## Read before you edit
 
@@ -101,7 +107,7 @@ proxy.ts             next-intl middleware (matcher skips api, _next, static and 
 .agents/skills/      the skills every AI tool loads (linked into .claude/skills for Claude Code)
 ```
 
-Commands: `bun install` · `bun dev` (port 2000) · `bun run build` · `bun start` · `bun run lint` ·
+Commands: `bun install` · `bun dev` (port 12000) · `bun run build` · `bun start` · `bun run lint` ·
 `bun run typecheck` · `bun run gen:options` · `bun run gen:articles`.
 
 ## Further reading
