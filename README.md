@@ -46,7 +46,7 @@ bun install
 bun dev
 ```
 
-The app runs at [http://localhost:2000](http://localhost:2000).
+The app runs at [http://localhost:12000](http://localhost:12000).
 
 ## ✨ Features
 
@@ -145,7 +145,7 @@ root). Everything else lives in `.railway/railway.ts`; preview a change with
 > fetched client-side from jsDelivr, so there is no backend, no API key, and no
 > secret to set. Railway injects `PORT` on its own and the standalone `server.js`
 > reads it at startup — never pin `PORT` in the image. (The repo's `.env` sets
-> `PORT=2000` for local dev only; `.dockerignore` keeps it out of the build.)
+> `PORT=12000` for local dev only; `.dockerignore` keeps it out of the build.)
 
 Verify the production image locally before pushing:
 
@@ -154,7 +154,7 @@ docker build -t prettier-config .
 ```
 
 ```bash
-docker run --rm -e PORT=2000 -p 2000:2000 prettier-config
+docker run --rm -e PORT=12000 -p 12000:12000 prettier-config
 ```
 
 ## 📸 Screenshots
