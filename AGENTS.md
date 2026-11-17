@@ -70,21 +70,26 @@ never here. The repo-specific half is the rest of this section.
 - **Production data, migrations, secrets, domains, CORS, auth:** state the blast radius and get Kwan's yes
   first.
 - **Never read, print or copy `.env*`, keys, tokens or credentials.**
+- **Context costs money on every turn.** One task per session; start a fresh one for unrelated work and compact
+  at a natural break. Plan first only for multi-file work, then go. Choose the model and effort at the start —
+  switching mid-session drops the prompt cache.
+- **Delegate only what would flood the context:** a wide search, long logs, a test run. Read known files
+  yourself, never fan out parallel agents to write code, and give every subagent a `model:` that fits the job
+  (`update-docs` §6).
 - **Ports are five digits and unique across every repo:** `RRSWW` is the repo (`RR`, handed out by the repo-kit
   repo), the service (`S`, with `8` kept for test runs) and the worktree (`WW`, `00` for the main checkout). A
   deployed service uses the same number for its `PORT` and its domain's target port. This repo's numbers are in
   its `AGENTS.md`.
 
-<!-- repo-kit: version=2026.11.04 hash=2d69171cd02e -->
+<!-- repo-kit: version=2026.11.17 hash=7fb9e3c5777d -->
 
 ## Read before you edit
 
 Invoke the skill for the area before editing in it.
 
-| Skill in `.agents/skills/`                                                 | Covers                                                                                              | Purpose                                                                    |
-| :------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------- |
-| [`playground-conventions`](.agents/skills/playground-conventions/SKILL.md) | `app/**`, `components/**`, `hooks/**`, `lib/**`, `common/**`, `content/**`, `i18n/**`, `scripts/**` | recipes (parser, plugin, preset, locale, token model), architecture, traps |
-| [`update-docs`](.agents/skills/update-docs/SKILL.md)                       | `AGENTS.md`, `docs/**`, `.agents/**`                                                                | the repo-kit standard — where an instruction belongs, budgets, skills      |
+- [`playground-conventions`](.agents/skills/playground-conventions/SKILL.md) — `app/**`, `components/**`,
+  `hooks/**`, `lib/**`, `common/**`, `content/**`, `i18n/**`, `scripts/**`
+- [`update-docs`](.agents/skills/update-docs/SKILL.md) — `AGENTS.md`, `docs/**`, `.agents/**`
 
 ## Repository map
 

@@ -40,10 +40,10 @@ Rules of thumb: an agent got it wrong twice → `AGENTS.md`; the same playbook p
 
 | File                         | Budget                                                       | Why                                  |
 | :--------------------------- | :----------------------------------------------------------- | :----------------------------------- |
-| `AGENTS.md`                  | **≤ 200 lines**, target 120, **≤ 24 KB**                      | Always on; Antigravity's file limit  |
+| `AGENTS.md`                  | **≤ 200 lines**, target 120, **≤ 12 KB**                      | Paid for on every turn of every session |
 | `<dir>/AGENTS.md`            | **≤ 200 lines**, target 80; the chain from the root ≤ 32 KiB  | Codex reads at most 32 KiB in all    |
 | `CLAUDE.md` (any)            | **≤ 40 lines**: `@AGENTS.md` + Claude-only notes              | A shim, never content                |
-| `.agents/skills/*/SKILL.md`  | **Target 100–150 lines, ceiling 500**                         | Loaded whole on every invocation     |
+| `.agents/skills/*/SKILL.md`  | **Target 100–150 lines and ≤ 16 KB; ceiling 500 lines, 24 KB** | Loaded whole on every invocation     |
 
 The Next.js block (`<!-- BEGIN:nextjs-agent-rules -->`) is not counted. Past the target, move detail into
 `references/<topic>.md` and link it. **Never trade ground-truth accuracy for line count.**
@@ -57,7 +57,7 @@ description: Conventions for the Elysia API under apps/api — modules, validati
 paths:                         # required for *-conventions skills (Claude surfaces it on a match)
     - 'apps/api/**'
 allowed-tools: Bash(bun run test *), Bash(git diff *)   # optional — COMMA-separated
-disable-model-invocation: true # optional — destructive procedures: invoked by name only
+disable-model-invocation: true # manual-only or destructive: invoked by name, description out of context
 ---
 ```
 
@@ -75,6 +75,10 @@ disable-model-invocation: true # optional — destructive procedures: invoked by
   the symbol (`file.ts` › `symbol`), never `file.ts:line`. A wrong skill is worse than none.
 - **Third-party text:** link it at its URL; vendor a copy only with its LICENSE beside it.
 - **Secrets:** never in a skill or AGENTS.md — not even where they are kept.
+- **Shared area skills:** `typescript-`, `tooling-`, `testing-` and `api-conventions` (Elysia on Bun) come
+  stamped from repo-kit. A repo opts in by keeping the skill's `local.md` (its deltas; bulk detail in `local/`
+  beside it). Never restate a stamped rule there — a rule two repos share moves into the repo-kit copy. Formatters
+  skip stamped skill folders, or `bun fmt` rewrites them and the check reports them as edited.
 
 ## 4. Every tool reads the same files
 
@@ -95,22 +99,14 @@ load skills from `.agents/skills/` — except Claude Code, which reads `CLAUDE.m
 
 Five headings, in order: `## Safety` (what is production, what needs Kwan's yes) · `## Delivery contract`
 (base branch, the `gate` chain, deploy — then the stamped shared block) · `## Read before you edit` (one
-table of skills, each linked at `.agents/skills/<name>/SKILL.md`) · `## Repository map` · `## Further
-reading`. A qualifier is fine ("Production safety"); extra sections are fine.
+bullet per skill: its name linked at `.agents/skills/<name>/SKILL.md`, then its globs or "manual"; no purpose
+column — the description is already in context, and a padded table costs kilobytes every session) · `## Repository
+map` · `## Further reading`. A qualifier is fine ("Production safety"); extra sections are fine.
 
-## 6. Monorepos and model choice
+## 6. Monorepos and subagents
 
-- **The root `AGENTS.md` routes:** facts every project shares, the five headings, and a repository map that
-  links each project's own `AGENTS.md`.
-- **One `AGENTS.md` per project folder** (`apps/web/`, `services/api/`, …) with its `CLAUDE.md` shim: its
-  commands, gate, deploy target and hard facts.
-- **Skills and agents live at the root** (`.agents/skills/`, `.claude/agents/`), scoped with `paths:`. A
-  nested `.agents/` or `.claude/` is not loaded from a root session, so the gate fails on one.
-- **One toolchain per project:** JS/TS projects share the root Bun workspace; any other language keeps its
-  manifest and lockfile inside its folder, and root `package.json` scripts are the single entry point.
-- **Independent deploys:** each deployable has its own Dockerfile, deploy config whose watch paths cover only
-  its folder and the packages it imports, and a CI workflow with a `paths` filter. `.dockerignore` lists
-  `.agents/`, `.claude/`, `AGENTS.md` and `CLAUDE.md`.
+- **Monorepos:** a routing root `AGENTS.md`, one `AGENTS.md` + shim per project folder, skills and agents at the
+  root, one toolchain and one deploy per project — [`references/monorepos.md`](references/monorepos.md).
 - **Every subagent names `model:` and `effort:`**: `haiku`/`low` for read-only search, docs and link checks;
   `sonnet`/`medium` for routine code; `opus`/`high` for reviews where a mistake is costly (safety, money,
   security).
@@ -129,10 +125,8 @@ This repo's specific map is in [`local.md`](local.md).
 
 ## 8. Dedup recipe
 
-1. `wc -l AGENTS.md .agents/skills/*/SKILL.md` against §2.
-2. A section that is mostly tables or subsystem detail moves to `references/<topic>.md`.
-3. A restatement becomes a link to its one home — the gate and delivery rules to `AGENTS.md`.
-4. Re-verify what moved against the code (§3 ground truth).
+Measure against §2 (`wc -c AGENTS.md .agents/skills/*/SKILL.md`); move table-heavy or subsystem sections to
+`references/<topic>.md`; turn each restatement into a link to its one home; re-verify what moved (§3).
 
 ## 9. Gate
 
@@ -140,11 +134,8 @@ This repo's specific map is in [`local.md`](local.md).
 bun run check:agents
 ```
 
-[`scripts/check-agent-docs.ts`](scripts/check-agent-docs.ts) checks the AGENTS.md skeleton and budgets, the
-CLAUDE.md shims, skill sources and their symlinks, frontmatter (real YAML parse, known keys, `name` = folder,
-the `Use when` trigger, `paths:` on `*-conventions`, comma-separated `allowed-tools`, `model:` and `effort:`
-on every subagent), links, anchors and `@imports`, unlinked bundled files, nested `.agents/` or `.claude/`,
-retired files, empty husks, broken symlinks, the stamped core, and that `bun run gate` calls it.
+[`scripts/check-agent-docs.ts`](scripts/check-agent-docs.ts) checks everything in §2–§6 that a script can: the
+AGENTS.md skeleton and budgets, shims, skills and symlinks, frontmatter, links, retired files and the stamped core.
 
 ## 10. Checklist
 
@@ -155,4 +146,4 @@ retired files, empty husks, broken symlinks, the stamped core, and that `bun run
 - [ ] `AGENTS.md` links the new or renamed skill; its `.claude/skills` symlink exists
 - [ ] `bun run check:agents` clean
 
-<!-- repo-kit: version=2026.10.31 hash=d9ba96954c57 -->
+<!-- repo-kit: version=2026.11.17 hash=0ddfccda60d7 -->

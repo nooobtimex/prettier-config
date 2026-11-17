@@ -7,7 +7,8 @@
  * `.claude/skills`, frontmatter parses with a real YAML parser and uses known keys, `name` matches its
  * folder, every description carries a "Use when" trigger, links and `@imports` resolve, bundled files are
  * reachable from their skill, retired per-tool files are gone, no symlink is broken, the repo-kit core
- * (the delivery block in AGENTS.md and the update-docs skill) is unedited, and package.json wires the gate.
+ * (the delivery block in AGENTS.md, the update-docs skill and every shared area skill the repo opted into)
+ * is unedited, and package.json wires the gate.
  *
  *   bun .agents/skills/update-docs/scripts/check-agent-docs.ts          check the repo in the cwd
  *   bun <kit>/payload/agents/skills/update-docs/scripts/check-agent-docs.ts --root <repo>
@@ -31,12 +32,31 @@ import path from 'node:path'
  * A dir item is copied into `<repo>/.agents/<path>`. A block item is inserted into `<repo>/<block>` after
  * the BLOCK_START marker line and runs to its stamp line, so every tool reads it without an import.
  */
-type CoreItem = { path: string; stamp: string; local?: string; block?: string }
+type CoreItem = { path: string; stamp: string; local?: string; block?: string; optional?: true }
+
+/**
+ * An optional item is a shared area skill: a repo opts in by keeping its `local.md`, because the same skill
+ * name can mean a different stack in a repo that never adopted the shared one.
+ */
+const shared = (name: string): CoreItem => ({
+	path: `skills/${name}`,
+	stamp: `skills/${name}/SKILL.md`,
+	local: `skills/${name}/local.md`,
+	optional: true,
+})
 
 export const CORE: CoreItem[] = [
 	{ path: 'delivery.md', stamp: 'delivery.md', block: 'AGENTS.md' },
 	{ path: 'skills/update-docs', stamp: 'skills/update-docs/SKILL.md', local: 'skills/update-docs/local.md' },
+	...['typescript-conventions', 'tooling-conventions', 'testing-conventions', 'api-conventions'].map(shared),
 ]
+
+/** A skill's repo-owned half: its `local.md` and anything under its `local/` folder, never stamped or replaced. */
+const isLocal = (item: CoreItem, rel: string) =>
+	!!item.local && (rel === item.local || rel.startsWith(`${path.posix.dirname(item.local)}/local/`))
+
+export const optedIn = (repo: string, item: CoreItem) =>
+	!item.optional || (!!item.local && fs.existsSync(path.join(repo, '.agents', item.local)))
 
 const STAMP_RX = /^<!-- repo-kit: version=(\S+) hash=([0-9a-f]{12}) -->$/m
 const STAMP_BLANK = '<!-- repo-kit -->'
@@ -109,7 +129,7 @@ const coreFiles = (src: Src, item: CoreItem): string[] => {
 	if (!fs.existsSync(root)) return []
 	return walkFiles(root)
 		.map(rel => normalizeRel(path.join(item.path, rel)))
-		.filter(rel => rel !== item.local)
+		.filter(rel => !isLocal(item, rel))
 		.sort()
 }
 
@@ -174,6 +194,7 @@ export const install = (repo: string, fromAgentsDir = bundleAgentsDir()): string
 			done.push(`.claude/skills/${name} → .agents/skills/${name}`)
 		}
 	for (const item of CORE) {
+		if (!optedIn(repo, item)) continue
 		if (item.block) {
 			const target = path.join(repo, item.block)
 			const block = fs.readFileSync(path.join(fromAgentsDir, item.path), 'utf8')
@@ -184,7 +205,10 @@ export const install = (repo: string, fromAgentsDir = bundleAgentsDir()): string
 		}
 		const dest = path.join(repo, '.agents', item.path)
 		const keep = item.local && fs.existsSync(path.join(repo, '.agents', item.local)) ? fs.readFileSync(path.join(repo, '.agents', item.local)) : null
-		fs.rmSync(dest, { recursive: true, force: true })
+		if (fs.existsSync(dest))
+			for (const rel of walkFiles(dest).map(f => normalizeRel(path.join(item.path, f))))
+				if (!isLocal(item, rel)) fs.rmSync(path.join(repo, '.agents', rel), { force: true })
+		pruneEmptyDirs(dest)
 		for (const rel of coreFiles(kitSrc(fromAgentsDir), item)) {
 			const target = path.join(repo, '.agents', rel)
 			fs.mkdirSync(path.dirname(target), { recursive: true })
@@ -230,6 +254,12 @@ export const install = (repo: string, fromAgentsDir = bundleAgentsDir()): string
 	return done
 }
 
+const pruneEmptyDirs = (dir: string) => {
+	if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) return
+	for (const e of fs.readdirSync(dir)) pruneEmptyDirs(path.join(dir, e))
+	if (!fs.readdirSync(dir).length) fs.rmdirSync(dir)
+}
+
 const isLink = (p: string) => {
 	try {
 		return fs.lstatSync(p).isSymbolicLink()
@@ -254,12 +284,12 @@ const RETIRED = [
 	'CODEX.md', 'GEMINI.md', '.cursorrules', '.cursor', '.windsurfrules', '.clinerules', '.claude/commands',
 	'.github/copilot-instructions.md', '.github/instructions', '.agents/AGENTS.md', '.agents/rules',
 ]
-const BUNDLED_DIRS = ['references', 'scripts', 'assets', 'templates']
+const BUNDLED_DIRS = ['references', 'scripts', 'assets', 'templates', 'local']
 const SKIP_UNDER = ['/templates/', '/payload/']
 const NEXT_BLOCK = /<!-- BEGIN:nextjs-agent-rules -->[\s\S]*?<!-- END:nextjs-agent-rules -->\n?/g
 const BUDGET = {
-	agentsMd: 200, projectAgentsMdTarget: 80, agentsMdBytes: 24_000, chainBytes: 32_768, shim: 40,
-	skillTarget: 150, skillMax: 500, desc: 1024, listing: 1536,
+	agentsMd: 200, projectAgentsMdTarget: 80, agentsMdBytes: 12_000, chainBytes: 32_768, shim: 40,
+	skillTarget: 150, skillMax: 500, skillBytesTarget: 16_000, skillBytesMax: 24_000, desc: 1024, listing: 1536,
 }
 
 type Result = { errors: string[]; notes: string[] }
@@ -454,12 +484,17 @@ export const check = (root: string, bundle = bundleAgentsDir()): Result => {
 		const lines = text.split('\n').length
 		if (lines > BUDGET.skillMax) err(file, lines, `SKILL.md is ${lines} lines (ceiling ${BUDGET.skillMax}) — move detail to references/`)
 		else if (lines > BUDGET.skillTarget) notes.push(`${rel(file)}: ${lines} lines (target ≤ ${BUDGET.skillTarget}) — consider references/`)
+		// Lines alone let a skill of very long lines through, and the whole body loads on every invocation.
+		const bytes = Buffer.byteLength(text)
+		if (bytes > BUDGET.skillBytesMax) err(file, 1, `SKILL.md is ${bytes} bytes (ceiling ${BUDGET.skillBytesMax}) — move detail to references/`)
+		else if (bytes > BUDGET.skillBytesTarget) notes.push(`${rel(file)}: ${bytes} bytes (target ≤ ${BUDGET.skillBytesTarget}) — consider references/`)
 		if (agentsMd && !agentsMd.includes(`.agents/skills/${name}/SKILL.md`)) err(agentsMdPath, 1, `does not link the skill .agents/skills/${name}/SKILL.md`)
 
 		// Bundled files must be reachable from SKILL.md through links or path mentions
 		const bundled = BUNDLED_DIRS.flatMap(d =>
 			fs.existsSync(path.join(dir, d)) ? walkFiles(path.join(dir, d)).map(f => path.join(d, f)) : [],
 		).filter(f => !/(^|\/)(LICENSE|NOTICE)[^/]*$/.test(f))
+		if (fs.existsSync(path.join(dir, 'local.md'))) bundled.unshift('local.md')
 		const reached = new Set<string>(['SKILL.md'])
 		const queue = ['SKILL.md']
 		while (queue.length) {
@@ -508,7 +543,7 @@ export const check = (root: string, bundle = bundleAgentsDir()): Result => {
 		const lines = body.split('\n').length
 		if (lines > BUDGET.agentsMd) err(agentsMdPath, lines, `AGENTS.md is ${lines} lines (max ${BUDGET.agentsMd}, the Next.js block not counted)`)
 		const bytes = Buffer.byteLength(agentsMd)
-		if (bytes > BUDGET.agentsMdBytes) err(agentsMdPath, 1, `AGENTS.md is ${bytes} bytes (max ${BUDGET.agentsMdBytes} — Antigravity's per-file limit)`)
+		if (bytes > BUDGET.agentsMdBytes) err(agentsMdPath, 1, `AGENTS.md is ${bytes} bytes (max ${BUDGET.agentsMdBytes} — every session pays for it; move detail to a skill)`)
 		const h2 = [...body.matchAll(/^## (.+)$/gm)].map(m => m[1]!.trim().toLowerCase())
 		for (const s of SKELETON) if (!h2.some(h => h.endsWith(s.toLowerCase()))) err(agentsMdPath, 1, `missing the skeleton heading "## ${s}"`)
 		for (const { target, line } of linksOf(agentsMd))
@@ -618,6 +653,7 @@ export const check = (root: string, bundle = bundleAgentsDir()): Result => {
 	const src = repoSrc(root)
 	const inBundle = fs.existsSync(src.agentsDir) && fs.realpathSync(src.agentsDir) === fs.realpathSync(bundle)
 	for (const item of CORE) {
+		if (!optedIn(root, item)) continue
 		const at = item.block ? path.join(root, item.block) : path.join(src.agentsDir, item.stamp)
 		if (!coreFiles(src, item).length) {
 			err(at, 1, item.block ? `no repo-kit delivery block (${BLOCK_START}) — run /repo-kit align` : 'repo-kit core missing — run /repo-kit align')
